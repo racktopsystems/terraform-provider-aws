@@ -294,6 +294,7 @@ func findUserByName(ctx context.Context, conn *iam.Client, name string) (*awstyp
 	if output != nil && output.Users != nil {
 		for _, u := range output.Users {
 			if *u.UserName == name {
+				*u.Path = "/" // Seagate Lyve API returns empty path but it must default to "/" when unset
 				return &u, nil
 			}
 		}
