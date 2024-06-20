@@ -62,6 +62,9 @@ type Config struct {
 	TokenBucketRateLimiterCapacity int
 	UseDualStackEndpoint           bool
 	UseFIPSEndpoint                bool
+
+	AccountId string
+	Partition string
 }
 
 // ConfigureProvider configures the provided provider Meta (instance data).
@@ -183,20 +186,26 @@ func (c *Config) ConfigureProvider(ctx context.Context, client *AWSClient) (*AWS
 		return nil, diags
 	}
 
-	tflog.Debug(ctx, "Retrieving AWS account details")
-	accountID, partition, awsDiags := awsbase.GetAwsAccountIDAndPartition(ctx, cfg, &awsbaseConfig)
-	for _, d := range awsDiags {
-		diags = append(diags, diag.Diagnostic{
-			Severity: baseSeverityToSDKSeverity(d.Severity()),
-			Summary:  fmt.Sprintf("Retrieving AWS account details: %s", d.Summary()),
-			Detail:   d.Detail(),
-		})
-	}
+	accountID := c.AccountId
+	partition := c.Partition
 
 	if accountID == "" {
-		diags = append(diags, errs.NewWarningDiagnostic(
-			"AWS account ID not found for provider",
-			"See https://registry.terraform.io/providers/hashicorp/aws/latest/docs#skip_requesting_account_id for implications."))
+		tflog.Debug(ctx, "Retrieving AWS account details")
+		var awsDiags basediag.Diagnostics
+		accountID, partition, awsDiags = awsbase.GetAwsAccountIDAndPartition(ctx, cfg, &awsbaseConfig)
+		for _, d := range awsDiags {
+			diags = append(diags, diag.Diagnostic{
+				Severity: baseSeverityToSDKSeverity(d.Severity()),
+				Summary:  fmt.Sprintf("Retrieving AWS account details: %s", d.Summary()),
+				Detail:   d.Detail(),
+			})
+		}
+
+		if accountID == "" {
+			diags = append(diags, errs.NewWarningDiagnostic(
+				"AWS account ID not found for provider",
+				"See https://registry.terraform.io/providers/hashicorp/aws/latest/docs#skip_requesting_account_id for implications."))
+		}
 	}
 
 	err := awsbaseConfig.VerifyAccountIDAllowed(accountID)
