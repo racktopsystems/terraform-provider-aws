@@ -278,8 +278,7 @@ func findUserByName(ctx context.Context, conn *iam.Client, name string) (*awstyp
 		UserName: aws.String(name),
 	}
 
-	// iam:GetUser is not supported by Seagate Lyve api
-	output, err := conn.ListUsers(ctx, &iam.ListUsersInput{})
+	output, err := conn.GetUser(ctx, input)
 
 	if errs.IsA[*awstypes.NoSuchEntityException](err) {
 		return nil, &retry.NotFoundError{
@@ -291,15 +290,11 @@ func findUserByName(ctx context.Context, conn *iam.Client, name string) (*awstyp
 		return nil, err
 	}
 
-	if output != nil && output.Users != nil {
-		for _, u := range output.Users {
-			if *u.UserName == name {
-				return &u, nil
-			}
-		}
+	if output == nil || output.User == nil {
+		return nil, tfresource.NewEmptyResultError(input)
 	}
 
-	return nil, tfresource.NewEmptyResultError(input)
+	return output.User, nil
 }
 
 func deleteUserGroupMemberships(ctx context.Context, conn *iam.Client, user string) error {
