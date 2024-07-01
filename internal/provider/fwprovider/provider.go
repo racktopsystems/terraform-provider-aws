@@ -164,14 +164,6 @@ func (p *fwprovider) Schema(ctx context.Context, req provider.SchemaRequest, res
 				Optional:    true,
 				Description: "Resolve an endpoint with FIPS capability",
 			},
-			"account_id": schema.StringAttribute{
-				Optional:    true,
-				Description: "The account ID to use. If not set, the account ID is retrieved via STS API.",
-			},
-			"partition": schema.StringAttribute{
-				Optional:    true,
-				Description: "The partition to use. If not set, the partition is retrieved via STS API.",
-			},
 		},
 		Blocks: map[string]schema.Block{
 			"assume_role": schema.ListNestedBlock{
