@@ -6,10 +6,12 @@ package s3
 import (
 	"context"
 	"log"
+	"net/http"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 	"github.com/hashicorp/aws-sdk-go-base/v2/tfawserr"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
@@ -203,6 +205,14 @@ func findBucketAccelerateConfiguration(ctx context.Context, conn *s3.Client, buc
 		return nil, &retry.NotFoundError{
 			LastError:   err,
 			LastRequest: input,
+		}
+	}
+
+	// Seagate Lyve does not support GetBucketAccelerateConfiguration but returns 403 instead of 501
+	if tfawserr.ErrCodeEquals(err, errCodeAccessDenied) {
+		return nil, &smithy.GenericAPIError{
+			Code:    errCodeNotImplemented,
+			Message: http.StatusText(http.StatusNotImplemented),
 		}
 	}
 
