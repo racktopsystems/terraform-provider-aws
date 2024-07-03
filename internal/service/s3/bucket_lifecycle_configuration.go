@@ -464,7 +464,8 @@ func findLifecycleRules(ctx context.Context, conn *s3.Client, bucket, expectedBu
 
 	output, err := conn.GetBucketLifecycleConfiguration(ctx, input)
 
-	if tfawserr.ErrCodeEquals(err, errCodeNoSuchBucket, errCodeNoSuchLifecycleConfiguration) {
+	// Seagate Lyve returns NoSuchBucketLifecycle instead of NoSuchLifecycleConfiguration
+	if tfawserr.ErrCodeEquals(err, errCodeNoSuchBucket, errCodeNoSuchLifecycleConfiguration, "NoSuchBucketLifecycle") {
 		return nil, &retry.NotFoundError{
 			LastError:   err,
 			LastRequest: input,

@@ -6,6 +6,7 @@ package conns
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -186,8 +187,9 @@ func (c *Config) ConfigureProvider(ctx context.Context, client *AWSClient) (*AWS
 		return nil, diags
 	}
 
-	accountID := c.AccountId
-	partition := c.Partition
+	// Workaround for Seagate Lyve S3 API not supporting STS GetCallerIdentity
+	accountID := os.Getenv("STS_ACCOUNT_ID")
+	partition := "aws"
 
 	if accountID == "" {
 		tflog.Debug(ctx, "Retrieving AWS account details")

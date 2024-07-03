@@ -249,16 +249,6 @@ func New(ctx context.Context) (*schema.Provider, error) {
 				Optional:    true,
 				Description: "Resolve an endpoint with FIPS capability",
 			},
-			"account_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The account ID to use. If not set, the account ID is retrieved via STS API.",
-			},
-			"partition": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The partition to use. If not set, the partition is retrieved via STS API.",
-			},
 		},
 
 		// Data sources and resources implemented using Terraform Plugin SDK
@@ -506,8 +496,6 @@ func configure(ctx context.Context, provider *schema.Provider, d *schema.Resourc
 		TokenBucketRateLimiterCapacity: d.Get("token_bucket_rate_limiter_capacity").(int),
 		UseDualStackEndpoint:           d.Get("use_dualstack_endpoint").(bool),
 		UseFIPSEndpoint:                d.Get("use_fips_endpoint").(bool),
-		AccountId:                      d.Get("account_id").(string),
-		Partition:                      d.Get("partition").(string),
 	}
 
 	if v, ok := d.Get("retry_mode").(string); ok && v != "" {

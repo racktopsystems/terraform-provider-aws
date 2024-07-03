@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 	"github.com/hashicorp/aws-sdk-go-base/v2/tfawserr"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/id"
@@ -1122,7 +1123,11 @@ func resourceBucketRead(ctx context.Context, d *schema.ResourceData, meta interf
 		return diags
 	}
 
-	if err != nil {
+	// Seagate does not support HeadBucket so set the region to the aws client's region
+	// as workaround until Seagate fixes the issue.
+	if tfawserr.ErrCodeEquals(err, "Forbidden") {
+		region = conn.Options().Region
+	} else if err != nil {
 		return sdkdiag.AppendErrorf(diags, "reading S3 Bucket (%s) location: %s", d.Id(), err)
 	}
 
@@ -1596,7 +1601,25 @@ func findBucket(ctx context.Context, conn *s3.Client, bucket string, optFns ...f
 		Bucket: aws.String(bucket),
 	}
 
-	_, err := conn.HeadBucket(ctx, input, optFns...)
+	// Seagate Lyve does not support HeadBucket.
+	// Use ListBuckets as a workaround until Seagate fixes the issue.
+	all, err := conn.ListBuckets(ctx, &s3.ListBucketsInput{})
+	if err == nil {
+		for _, b := range all.Buckets {
+			if *b.Name == bucket {
+				return nil
+			}
+		}
+
+		err = &smithyhttp.ResponseError{
+			Response: &smithyhttp.Response{
+				Response: &http.Response{
+					Status:     http.StatusText(http.StatusNotFound),
+					StatusCode: http.StatusNotFound,
+				},
+			},
+		}
+	}
 
 	// For directory buckets that no longer exist it's the CreateSession call invoked by HeadBucket that returns "NoSuchBucket",
 	// and that error code is flattend into HeadBucket's error message -- hence the 'errs.Contains' call.
